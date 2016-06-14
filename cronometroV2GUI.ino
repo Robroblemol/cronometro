@@ -45,6 +45,7 @@ int nFranjas = 1;     //1 franja equivale a dos eventos, al llegar y al salir.
 int nFranjasAux;
 int anchoFranjas = MinAnchoFranjas; //10mm
 
+long int tiemposN[21];
 long int tiempos1[21];    //Almacena los tiempos transcurridos hasta cada cambio del sensor 1
 long int tiempos1Aux[21]; //Auxiliar para cálculos
 float velocidadAux[21];  //Auxiliar de la velocidad para calculos
@@ -86,20 +87,30 @@ void loop() {
       midiendo = 0;                //Medición cancelada
     }
     sensor1Actual = digitalRead(SEN_I1); //Lee el estado de entrada del sensor 1
-    if (sensor1Actual != sensor1Inicio) { //Compara el estado actual con el anterior para monitorear cambios
-      tiempos1[i1] = millis();           //Cuando ocurra un cambio, toma el tiempo actual
-      sensor1Inicio = sensor1Actual;     //Actualiza el estado de entrada del sensor para comparación posterior
-      if (i1 == 1) {
-        mensajeMidiendo(); //Si el puntero está en 1, muestra mensaje de "Midiendo..."
-      }
-      i1 = i1 + 1;                       //Aumenta el puntero de la matriz de datos, en 1.
+//    if (sensor1Actual != sensor1Inicio) { //Compara el estado actual con el anterior para monitorear cambios
+//      //tiemposN[i1] = pulseIn(SEN_I1,LOW);
+//      tiempos1[i1] = millis();           //Cuando ocurra un cambio, toma el tiempo actual
+//      sensor1Inicio = sensor1Actual;     //Actualiza el estado de entrada del sensor para comparación posterior
+//      if (i1 == 1) {
+//        mensajeMidiendo(); //Si el puntero está en 1, muestra mensaje de "Midiendo..."
+//      }
+
+
+ if (sensor1Actual != sensor1Inicio) {
+  if( sensor1Actual == false){
+    tiemposN[i1] = pulseIn(SEN_I1,LOW);
+  } else {
+    tiempos1[i1] = pulseIn(SEN_I1,HIGH);
+  }
+    sensor1Inicio = sensor1Actual;
+     i1 = i1 + 1;                       //Aumenta el puntero de la matriz de datos, en 1.
       nFranjasAux = nFranjasAux - 1;     //Decrementa el contador de flancos de franja = (2 * franjas)
 
       if (nFranjasAux == 0) {            //Si termina el conteo, despliega la información
         midiendo = 0;
         ApagarSensor1();
         mensajeTerminado();
-        delay(1000);
+        delay(250);
         calculoDeltaT(tiempos1[0], tiempos1[i1 - 1]); //Calculo del tiempo que paso desde que se activo el sensor
         lcd.clear();                                //Limpia pantalla
         mensajeResultadosTiempoLCD();               //Despliega la información en el LCD
@@ -193,7 +204,9 @@ void calculoVoA(){
     for (i = 0; i < nFranjasCalc; i++) {
       tiempos1Aux[i] = tiempos1[i + 1] - tiempos1[i];                //Calculo el dt
       velocidadAux[i] = (((float)anchoFranjas * 1000) / (float)tiempos1Aux[i]); //Calculo el dx/dt
-      deltaTnoFormat(tiempos1[i], tiempos1[i + 1]);  
+      //Serial.println(tiemposN[i],4);
+      deltaTnoFormat(tiempos1[i], tiempos1[i + 1]); 
+        
       //mensajeResultadosTiempoUART() ; //Calculo para desplegar en el puerto serie
       //Serial.print("T");                                             //Envía al puerto serie, la lista de tiempos parciales dt.
       //Serial.print(i+1);
