@@ -1,3 +1,4 @@
+
 #include <LiquidCrystal.h>
 #include <SoftwareSerial.h>
 
@@ -45,9 +46,11 @@ int nFranjas = 1;     //1 franja equivale a dos eventos, al llegar y al salir.
 int nFranjasAux;
 int anchoFranjas = MinAnchoFranjas; //10mm
 
-long int tiemposN[21];
 long int tiempos1[21];    //Almacena los tiempos transcurridos hasta cada cambio del sensor 1
 long int tiempos1Aux[21]; //Auxiliar para cálculos
+long int ti[21];
+long int vi[21];
+long int dxi[21];
 float velocidadAux[21];  //Auxiliar de la velocidad para calculos
 int auxTiempos[7];        //Auxiliar para despliegue
 
@@ -87,30 +90,20 @@ void loop() {
       midiendo = 0;                //Medición cancelada
     }
     sensor1Actual = digitalRead(SEN_I1); //Lee el estado de entrada del sensor 1
-//    if (sensor1Actual != sensor1Inicio) { //Compara el estado actual con el anterior para monitorear cambios
-//      //tiemposN[i1] = pulseIn(SEN_I1,LOW);
-//      tiempos1[i1] = millis();           //Cuando ocurra un cambio, toma el tiempo actual
-//      sensor1Inicio = sensor1Actual;     //Actualiza el estado de entrada del sensor para comparación posterior
-//      if (i1 == 1) {
-//        mensajeMidiendo(); //Si el puntero está en 1, muestra mensaje de "Midiendo..."
-//      }
-
-
- if (sensor1Actual != sensor1Inicio) {
-  if( sensor1Actual == false){
-    tiemposN[i1] = pulseIn(SEN_I1,LOW);
-  } else {
-    tiempos1[i1] = pulseIn(SEN_I1,HIGH);
-  }
-    sensor1Inicio = sensor1Actual;
-     i1 = i1 + 1;                       //Aumenta el puntero de la matriz de datos, en 1.
+    if (sensor1Actual != sensor1Inicio) { //Compara el estado actual con el anterior para monitorear cambios
+      tiempos1[i1] = millis();           //Cuando ocurra un cambio, toma el tiempo actual
+      sensor1Inicio = sensor1Actual;     //Actualiza el estado de entrada del sensor para comparación posterior
+      if (i1 == 1) {
+        mensajeMidiendo(); //Si el puntero está en 1, muestra mensaje de "Midiendo..."
+      }
+      i1 = i1 + 1;                       //Aumenta el puntero de la matriz de datos, en 1.
       nFranjasAux = nFranjasAux - 1;     //Decrementa el contador de flancos de franja = (2 * franjas)
 
       if (nFranjasAux == 0) {            //Si termina el conteo, despliega la información
         midiendo = 0;
         ApagarSensor1();
         mensajeTerminado();
-        delay(250);
+        delay(1000);
         calculoDeltaT(tiempos1[0], tiempos1[i1 - 1]); //Calculo del tiempo que paso desde que se activo el sensor
         lcd.clear();                                //Limpia pantalla
         mensajeResultadosTiempoLCD();               //Despliega la información en el LCD
@@ -204,9 +197,7 @@ void calculoVoA(){
     for (i = 0; i < nFranjasCalc; i++) {
       tiempos1Aux[i] = tiempos1[i + 1] - tiempos1[i];                //Calculo el dt
       velocidadAux[i] = (((float)anchoFranjas * 1000) / (float)tiempos1Aux[i]); //Calculo el dx/dt
-      //Serial.println(tiemposN[i],4);
-      deltaTnoFormat(tiempos1[i], tiempos1[i + 1]); 
-        
+      deltaTnoFormat(tiempos1[i], tiempos1[i + 1],(i+1));  
       //mensajeResultadosTiempoUART() ; //Calculo para desplegar en el puerto serie
       //Serial.print("T");                                             //Envía al puerto serie, la lista de tiempos parciales dt.
       //Serial.print(i+1);
@@ -214,6 +205,7 @@ void calculoVoA(){
                                      //Cambia el formato para ser desplegado
     
   }
+  sendTiarray();
 
     float Ex = 0.0;       //Declara las variables para realizar mínimos cuadrados
     float Ev2 = 0.0;      //
@@ -252,12 +244,28 @@ void calculoVoA(){
     lcd.print(" m/s^2");
   }
 }
-void deltaTnoFormat(long int T0,long int Tf){
+//i no puede ser 0
+int countTi = 0;
+void deltaTnoFormat(long int T0,long int Tf, int i){
   long int tiempo;
+  if(i==1){
+  countTi=0;
+  }
   tiempo = (Tf - T0); 
-  Serial.print("f");
-  Serial.print(tiempo,3);
+  ti[0] = 0;
+  ti[i] = tiempo+ti[i-1]; // caluculo ti
+  countTi++;
+ // Serial.print("f");
+ //Serial.print(tiempo,3);
 }
+void sendTiarray(){
+for(int i =0;i<=countTi;i++){
+  Serial.print("f");
+  Serial.print(ti[i]);
+}
+}
+
+
 
 void calculoDeltaT(long int T0, long int Tf) {
   int m, mu, md, s, su, l, lu, lc, sd, ld; //Definición de las varables locales
@@ -450,7 +458,7 @@ void iniciarLCD() {  //Inicio del LCD
   pinMode(LCD_RW, OUTPUT);    //Pin de control de lectura/escritura del display.
   digitalWrite(LCD_RW, LOW);  //LCD_RW LOW permanentemente en bajo
   lcd.begin(16, 2);           //Se define el LCD como de 16 x 2
-  lcd.print("** CRONOMETRO **"); //Muestra el mensaje en el LCD
+  lcd.print("** CRONOMETRO  **"); //Muestra el mensaje en el LCD
   lcd.setCursor(0, 1);            //Posiciona el cursor en la segunda línea del LCD
   lcd.print("*YEIMMY LONDONO*");  //Despliega mensaje en lcd
   delay(4000);                    //Espera 4s
