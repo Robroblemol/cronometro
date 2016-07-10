@@ -372,8 +372,18 @@ void mensajeCabeceraResultadosUART() {
   //Serial.println("********** DATOS OBTENIDOS **********");  //Envía mensaje por el puerto de comunicaciones
   Serial.print("@");
   Serial.print("TF");//N fanjas
+  if(nFranjas<10){
+    Serial.print(0);
+    Serial.print(nFranjas);
+  }
+  else
   Serial.print(nFranjas);
   Serial.print("AF");//Ancho fanjas
+  if(anchoFranjas<100){
+    Serial.print(0);
+    Serial.print(anchoFranjas);
+  }
+  else 
   Serial.print(anchoFranjas);
   //Serial.println(" mm");
   Serial.print("TT");//tiempo total
